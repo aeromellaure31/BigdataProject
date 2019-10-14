@@ -1,13 +1,16 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package mhinecounter;
 
 import Filter.removeTags;
+import java.awt.Dimension;
+import java.awt.Font;
 import java.util.ArrayList;
 import java.util.List;
+import java.sql.*;
+import javax.swing.JFrame;
+import javax.swing.JOptionPane;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
+import javax.swing.table.DefaultTableModel;
 
 /**
  *
@@ -15,12 +18,49 @@ import java.util.List;
  */
 public class MhineCont extends javax.swing.JFrame {
 
+    int mhe = 0;
+    List<String> list = new ArrayList();
+    List<String> listRemove = new ArrayList();
+    static final String JDBC_DRIVER = "com.mysql.jdbc.Driver";
+    static final String DB_URL = "jdbc:mysql://localhost/BigData";
+
+    //  Database credentials
+    static final String USER = "root";
+    static final String PASS = "";
+
+    public Object[][] RetrieveData() {
+        Object[][] data = new Object[mhe][4];
+        Connection conn = null;
+        Statement stmt = null;
+        String retrieveQuery;
+        retrieveQuery = String.format("SELECT * from `countwords`");
+        try {
+            int cols = 0;
+            conn = DriverManager.getConnection(DB_URL, USER, PASS);
+            stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery(retrieveQuery);
+            System.out.println(rs);
+            while (rs.next()) {
+                data[cols][0] = rs.getInt("Id");
+                data[cols][1] = rs.getString("Word");
+                data[cols][2] = rs.getInt("Count");
+                data[cols][3] = rs.getString("School");
+                ++cols;
+            }
+        } catch (SQLException ex) {
+            System.out.println(ex.getMessage());
+            String checkQuery = "Select word from `test`";
+        }
+        return data;
+    }
+
     /**
      * Creates new form MhineCont
      */
     public MhineCont() {
         initComponents();
     }
+    
 
     /**
      * This method is called from within the constructor to initialize the form.
@@ -37,6 +77,8 @@ public class MhineCont extends javax.swing.JFrame {
         jTextAreaRemove = new javax.swing.JTextArea();
         jButtonRemove = new javax.swing.JButton();
         jLabel1 = new javax.swing.JLabel();
+        count = new javax.swing.JButton();
+        Show = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
@@ -52,7 +94,7 @@ public class MhineCont extends javax.swing.JFrame {
         jTextAreaRemove.setRows(5);
         jScrollPane2.setViewportView(jTextAreaRemove);
 
-        jButtonRemove.setText("Remove");
+        jButtonRemove.setText("Count");
         jButtonRemove.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseClicked(java.awt.event.MouseEvent evt) {
                 jButtonRemoveMouseClicked(evt);
@@ -62,6 +104,20 @@ public class MhineCont extends javax.swing.JFrame {
         jLabel1.setForeground(new java.awt.Color(153, 51, 255));
         jLabel1.setText("Tags Remover");
         jLabel1.setMaximumSize(new java.awt.Dimension(69, 20));
+
+        count.setText("Remove Tags");
+        count.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                countActionPerformed(evt);
+            }
+        });
+
+        Show.setText("Show");
+        Show.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                ShowActionPerformed(evt);
+            }
+        });
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -75,9 +131,13 @@ public class MhineCont extends javax.swing.JFrame {
                             .addComponent(jScrollPane2)
                             .addComponent(jScrollPane1, javax.swing.GroupLayout.Alignment.TRAILING)))
                     .addGroup(layout.createSequentialGroup()
-                        .addGap(186, 186, 186)
+                        .addGap(82, 82, 82)
+                        .addComponent(count)
+                        .addGap(31, 31, 31)
                         .addComponent(jButtonRemove)
-                        .addGap(0, 187, Short.MAX_VALUE)))
+                        .addGap(34, 34, 34)
+                        .addComponent(Show)
+                        .addGap(0, 80, Short.MAX_VALUE)))
                 .addContainerGap())
             .addGroup(layout.createSequentialGroup()
                 .addGap(184, 184, 184)
@@ -92,7 +152,10 @@ public class MhineCont extends javax.swing.JFrame {
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 172, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(jButtonRemove)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jButtonRemove)
+                    .addComponent(count)
+                    .addComponent(Show))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 184, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap())
@@ -102,6 +165,81 @@ public class MhineCont extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void jButtonRemoveMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jButtonRemoveMouseClicked
+        jTextAreaRemove.setText("");
+        String str = jTextAreaOrig.getText();
+        removeTags f = new removeTags();
+        str = f.removeHTML(str);
+        str = str.replaceAll("\\s+", " ");
+        String output = "";
+
+        Connection conn = null;
+        Statement stmt = null;
+        try {
+            //STEP 2: Register JDBC driver
+            Class.forName("com.mysql.jdbc.Driver");
+
+            //STEP 3: Open a connection
+            System.out.println("Connecting to a selected database...");
+            conn = DriverManager.getConnection(DB_URL, USER, PASS);
+            System.out.println("Connected database successfully...");
+
+            //STEP 4: Execute a query
+            System.out.println("Inserting records into the table...");
+            stmt = conn.createStatement();
+
+            String[] loop = str.split(" ");
+            for (String x : loop) {
+                if (list.contains(x)) {
+                    continue;
+                } else {
+                    list.add(x);
+                }
+            }
+            list.remove(0);
+            for (String y : list) {
+                int counter = 0;
+                for (String z : loop) {
+                    if (y.equals(z)) {
+                        counter++;
+                    }
+                }
+                output += (y + " = " + counter + "; \n");
+                String sql = String.format("INSERT INTO countwords(Word,Count,School) VALUES ('%s','%d','%s')", y, counter, "USC");
+                stmt.executeUpdate(sql);
+                System.out.println("Inserted records into the table...");
+                mhe++;
+            }
+            jTextAreaRemove.setText(output);
+
+        } catch (SQLException se) {
+            //Handle errors for JDBC
+            se.printStackTrace();
+        } catch (Exception e) {
+            //Handle errors for Class.forName
+            e.printStackTrace();
+        } finally {
+            //finally block used to close resources
+            try {
+                if (stmt != null) {
+                    conn.close();
+                }
+            } catch (SQLException se) {
+            }// do nothing
+            try {
+                if (conn != null) {
+                    conn.close();
+                }
+            } catch (SQLException se) {
+                se.printStackTrace();
+            }//end finally try
+        }//end try
+        System.out.println("Goodbye!");
+
+
+    }//GEN-LAST:event_jButtonRemoveMouseClicked
+
+    private void countActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_countActionPerformed
+        jTextAreaRemove.setText("");
         String str = jTextAreaOrig.getText();
         removeTags f = new removeTags();
         str = f.removeHTML(str);
@@ -110,16 +248,42 @@ public class MhineCont extends javax.swing.JFrame {
 
         String[] loop = str.split(" ");
         for (String x : loop) {
-            int counter = 0;
-            for (String z : loop) {
-                if (x.equals(z)) {
-                    counter++;
-                }
+            if (listRemove.contains(x)) {
+                continue;
+            } else {
+                listRemove.add(x);
             }
-            output += (x + " = " + counter + "; \n");
+        }
+        listRemove.remove(0);
+        System.out.println(listRemove);
+        for (String y : listRemove) {
+            output += (y + "\n");
         }
         jTextAreaRemove.setText(output);
-    }//GEN-LAST:event_jButtonRemoveMouseClicked
+    }//GEN-LAST:event_countActionPerformed
+
+    private void ShowActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_ShowActionPerformed
+        final JFrame frame = new JFrame("JTable Demo");
+        String[] columns = {"id", "word", "count", "school"};
+        Object[][] data = RetrieveData();
+        DefaultTableModel tableModel = new DefaultTableModel(data, columns) {
+            public boolean isCellEditable(int row, int column) {
+                //all ceisCellEditablells false
+                return false;
+            }
+        };
+        this.setVisible(false);
+        JTable popUpTable = new JTable(data, columns);
+        Font font = new Font("Verdana", Font.PLAIN, 12);
+        popUpTable.setModel(tableModel);
+        popUpTable.setFont(font);
+        popUpTable.setRowHeight(25);
+        popUpTable.getTableHeader().setPreferredSize(new Dimension(100, 30));
+        popUpTable.getTableHeader().setFont(font);
+        JOptionPane.showMessageDialog(null, new JScrollPane(popUpTable), "Word Count", JOptionPane.INFORMATION_MESSAGE
+        );
+        this.setVisible(true);
+    }//GEN-LAST:event_ShowActionPerformed
 
     /**
      * @param args the command line arguments
@@ -157,6 +321,8 @@ public class MhineCont extends javax.swing.JFrame {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton Show;
+    private javax.swing.JButton count;
     private javax.swing.JButton jButtonRemove;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JScrollPane jScrollPane1;
