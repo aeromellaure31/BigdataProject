@@ -195,7 +195,8 @@ public class MhineCont extends javax.swing.JFrame {
                     list.add(x);
                 }
             }
-            list.remove(0);
+            
+            list.remove(list.indexOf(""));
             for (String y : list) {
                 int counter = 0;
                 for (String z : loop) {
